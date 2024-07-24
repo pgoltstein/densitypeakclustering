@@ -22,5 +22,5 @@ __all__ = [
     'cluster_cores',
 ]
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 __author__ = 'Pieter Goltstein'

@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='densitypeakclustering',
-    version='1.0.0',
+    version='1.0.1',
     description='Implementation of the Clustering by fast search and find of density peaks algorithm',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
