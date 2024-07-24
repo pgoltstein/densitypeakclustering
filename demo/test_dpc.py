@@ -15,7 +15,7 @@ Created on Sunday 1 Aug 2021
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-import densityclustering as dc
+import densitypeakclustering as dc
 
 useplot = 2
 
@@ -86,7 +86,7 @@ print("centers: {}".format(centers))
 ids = dc.assign_cluster_id(rho, nearest, centers)
 print("ids: {}".format(ids))
 
-core = dc.core(D, d_c, rho, ids)
+core = dc.cluster_cores(D, d_c, rho, ids)
 
 plt.subplots()
 plt.scatter( x, y, c="#000000", s=20, alpha=1.0, edgecolors="None" )
