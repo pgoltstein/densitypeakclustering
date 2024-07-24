@@ -2,7 +2,7 @@
 
 This project implements the 'Clustering by fast search and find of density peaks' algorithm as described by Rodriguez and Laio in their paper:
 
-> Rodriguez, Alex, and Alessandro Laio. “Clustering by Fast Search and Find of Density Peaks.” Science 344, no. 6191 (June 27, 2014): 1492–96.
+> Rodriguez, Alex, and Alessandro Laio. “Clustering by Fast Search and Find of Density Peaks.” Science 344, no. 6191 (June 27, 2014): 1492–96 (https://www.science.org/doi/10.1126/science.1242072).
 
 
 ## Overview
@@ -20,10 +20,12 @@ Density Peak Clustering is a clustering algorithm that identifies cluster center
 
 ## Demo's
 
-The demo folder holds two notebooks: 
-1. "demo_functionality.ipynb": A demonstration of the functionality of the python toolbox
-2. "demo_paper_figures.ipynb": Code to reproduce a selection of figures from the original paper using this python toolbox.
-
+The demo folder holds the following files: 
+1. demo_paper_figures.ipynb: Code to reproduce a selection of figures from the original paper using this python toolbox.
+2. fig1.dat: Data point coordinates of figure 1 of the paper
+3. fig2_panelB.dat: Data point coordinates of figure 2B of the paper
+4. fig2_panelC.dat: Data point coordinates of figure 2C of the paper
+5. cluster_dp.m: Original code from the authors of the paper 
 
 ## Installation
 
