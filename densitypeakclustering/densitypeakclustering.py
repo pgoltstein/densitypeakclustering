@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Functions
 
-def find_clusters(X, fraction=0.05, rho_min=0.2, delta_min=0.2, weights=None, rho_x_delta_min=None, show_rho_vs_delta=False, quiet=False):
+def find_clusters(X, fraction=0.05, rho_min=0.2, delta_min=0.2, weights=None, normalize=True, rho_x_delta_min=None, show_rho_vs_delta=False, quiet=False):
     """
     Runs the cluster detection from start to end.
 
@@ -41,6 +41,8 @@ def find_clusters(X, fraction=0.05, rho_min=0.2, delta_min=0.2, weights=None, rh
         Minimum delta for cluster to be included, by default 0.2
     weights : ndarray, optional
         Value to scale the density contribution of each datapoint, by default None
+    normalize : bool, optional
+        Normalize the local density and distances, by default True
     rho_x_delta_min : float, optional
         Minimum product of rho and delta to be included as cluster, if value given, it supersedes rho_min and delta_min, by default None
     show_rho_vs_delta : bool, optional
@@ -62,12 +64,12 @@ def find_clusters(X, fraction=0.05, rho_min=0.2, delta_min=0.2, weights=None, rh
     D = distance_matrix(X, quiet=quiet)
     d_c = estimate_d_c(D, fraction)
     if weights is not None:
-        rho = weighed_local_density(D, d_c, weights=weights, normalize=True)
+        rho = weighed_local_density(D, d_c, weights=weights, normalize=normalize)
     else:
-        rho = local_density(D, d_c, normalize=True)
-    delta, nearest = distance_to_larger_density(D, rho, normalize=True)
+        rho = local_density(D, d_c, normalize=normalize)
+    delta, nearest = distance_to_larger_density(D, rho, normalize=normalize)
     centers = cluster_centers(rho, delta, rho_min=rho_min, delta_min=delta_min, rho_x_delta_min=rho_x_delta_min)
-
+    
     # Store cluster information
     for c in centers:
         clusters.append({'X': X[c,0], 'Y': X[c,1], 'rho': rho[c], 'delta': delta[c]})
@@ -309,6 +311,7 @@ def distance_to_larger_density(D, rho, normalize=False):
     # Output vector
     delta = np.zeros_like(rho)
     nearest = np.zeros_like(rho, dtype=np.int64)
+    D_ = np.array(D)
 
     # Loop samples
     for s in range(len(rho)):
@@ -318,14 +321,14 @@ def distance_to_larger_density(D, rho, normalize=False):
 
         # If no samples having a larger density, set to maximum distance
         if np.sum(nearby_ix*1.0) == 0:
-            delta[s] = np.nanmax(D[s,:])
+            delta[s] = np.nanmax(D_[s,:])
 
         # Else set to minimum distance a point with higher density
         else:
-            d_vec = D[s,:]
+            d_vec = D_[s,:]
             d_vec[nearby_ix==False] = np.nanmax(d_vec)
             nearestby_ix = np.argmin(d_vec)
-            delta[s] = D[s,nearestby_ix]
+            delta[s] = D_[s,nearestby_ix]
             nearest[s] = nearestby_ix
 
     # Normalize
