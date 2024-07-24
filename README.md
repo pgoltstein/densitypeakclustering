@@ -22,7 +22,7 @@ Density Peak Clustering is a clustering algorithm that identifies cluster center
 
 The demo folder holds two notebooks: 
 1. "demo_functionality.ipynb": A demonstration of the functionality of the python toolbox
-2. "demo_paper_figures.inpynb": Code to reproduce a selection of figures from the original paper using this python toolbox.
+2. "demo_paper_figures.ipynb": Code to reproduce a selection of figures from the original paper using this python toolbox.
 
 
 ## Installation
@@ -32,4 +32,4 @@ To use this project, clone the repository and install the required dependencies:
 ```bash
 git clone https://github.com/pgoltstein/densitypeakclustering.git
 cd densitypeakclustering
-pip install -r requirements.txt
+pip install .
