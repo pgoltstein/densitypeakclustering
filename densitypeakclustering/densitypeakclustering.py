@@ -5,47 +5,70 @@
 Script custom implements the fast search and clustering by density peaks
 algorithm
 
-Rodriguez, Alex, and Alessandro Laio. “Clustering by Fast Search and Find of Density Peaks.” Science 344, no. 6191 (June 27, 2014): 1492–96.
+Rodriguez, Alex, and Alessandro Laio. “Clustering by Fast Search and Find of Density Peaks.” Science 344, no. 6191 (June 27, 2014): 1492-96.
 
 Created on Sunday 1 Aug 2021
 
 @author: pgoltstein
 """
 
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Imports
 import numpy as np
 import sklearn.metrics
 import matplotlib.pyplot as plt
 
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Functions
+
 def find_clusters(X, fraction=0.05, rho_min=0.2, delta_min=0.2, weights=None, rho_x_delta_min=None, show_rho_vs_delta=False, quiet=False):
-    """ runs the cluster detection from start to end
+    """
+    Runs the cluster detection from start to end.
 
-        Inputs
-        - X: data matrix X (samples X features)
-        - fraction: fraction of data to include for distance calculation
-        - rho_min: minimum rho for cluster to be included
-        - weights: value to scale the density contribution of each datapoint, e.g. ocular dominance index
-        - rho_x_delta_min: minimum product of rho and delta to be included as cluster, if value given, it supersedes rho_min and delta_min
-        - delta_min: minimum delta for cluster to be included
+    Parameters
+    ----------
+    X : ndarray
+        Data matrix X (samples x features)
+    fraction : float, optional
+        Fraction of data to include for distance calculation, by default 0.05
+    rho_min : float, optional
+        Minimum rho for cluster to be included, by default 0.2
+    delta_min : float, optional
+        Minimum delta for cluster to be included, by default 0.2
+    weights : ndarray, optional
+        Value to scale the density contribution of each datapoint, by default None
+    rho_x_delta_min : float, optional
+        Minimum product of rho and delta to be included as cluster, if value given, it supersedes rho_min and delta_min, by default None
+    show_rho_vs_delta : bool, optional
+        Whether to show scatter plot of rho vs delta, by default False
+    quiet : bool, optional
+        Suppress print statements, by default False
 
-        Outputs
-        - clusters: list that holds dictionaries with cluster stats
-            [cluster = {'X':#, 'Y':#, 'rho':#, 'delta':#}, ...]
+    Returns
+    -------
+    list
+        List that holds dictionaries with cluster stats
+        [cluster = {'X':#, 'Y':#, 'rho':#, 'delta':#}, ...]
     """
 
-    # Output dictionary
+    # Output list
     clusters = []
 
     # Cluster detection cascade
     D = distance_matrix(X, quiet=quiet)
-    d_c = estimate_d_c(D,fraction)
+    d_c = estimate_d_c(D, fraction)
     if weights is not None:
-        rho = weighed_local_density(D, d_c,weights=weights,normalize=True)
+        rho = weighed_local_density(D, d_c, weights=weights, normalize=True)
     else:
-        rho = local_density(D, d_c,normalize=True)
-    delta, nearest = distance_to_larger_density(D, rho,normalize=True)
+        rho = local_density(D, d_c, normalize=True)
+    delta, nearest = distance_to_larger_density(D, rho, normalize=True)
     centers = cluster_centers(rho, delta, rho_min=rho_min, delta_min=delta_min, rho_x_delta_min=rho_x_delta_min)
 
-    # Output nicely :-)
+    # Store cluster information
     for c in centers:
         clusters.append({'X': X[c,0], 'Y': X[c,1], 'rho': rho[c], 'delta': delta[c]})
 
@@ -65,31 +88,36 @@ def find_clusters(X, fraction=0.05, rho_min=0.2, delta_min=0.2, weights=None, rh
 
     return clusters
 
+
+
 def value_per_shell(X, Y, data_var, clusters, bin_size=50, start=0, end=500):
-    """ Calculates the mean value of variable data_var per distance bin from cluster centers
+    """
+    Calculates the mean value of a variable within specified distance bins from cluster centers.
 
     Parameters
     ----------
     X : np.array
-        x-coordinate per data point
+        X-coordinates of data points.
     Y : np.array
-        y-coordinate per data point (array)
+        Y-coordinates of data points.
     data_var : np.array
-        variable value per data point (array)
+        Values of the variable for each data point.
     clusters : list
-        output of the find_clusters function
-    bin_size : int
-        size of the shells
-    start : int
-        distance to start, default is 0 micron
-    end : int
-        distance to end, default is 500 micron
+        List of dictionaries with cluster information, output of the find_clusters function.
+    bin_size : int, optional
+        Size of the distance bins (shells), by default 50.
+    start : int, optional
+        Starting distance for bins, by default 0.
+    end : int, optional
+        Ending distance for bins, by default 500.
 
-    returns
-    ----------
-    bin_values : np.arrays
-        matrix with data values [clusters,bins]
-
+    Returns
+    -------
+    tuple
+        bin_values : np.array
+            Matrix with mean values of the variable per bin for each cluster [clusters, bins].
+        xvalues : np.array
+            Array with the center value of each bin.
     """
 
     # Prepare output variables
@@ -98,13 +126,13 @@ def value_per_shell(X, Y, data_var, clusters, bin_size=50, start=0, end=500):
     bin_values = np.zeros( (len(clusters),n_bins) )
     xvalues = bins[:-1] + (0.5*bin_size)
 
-    # Loop clusters
+    # Loop over clusters
     for c_nr, c in enumerate(clusters):
 
-        # Find distance of neurons to cluster center
+        # Find distance of data points to cluster center
         D = np.sqrt( (X-c["X"])**2 + (Y-c["Y"])**2 )
 
-        # Loop shell-bins and get mean value per shell-bin
+        # Loop over shell-bins and calculate the mean value per shell-bin
         for b_nr in range(n_bins):
             include_ix = np.argwhere( np.logical_and( D>=bins[b_nr], D<bins[b_nr+1] ) ).ravel()
             bin_values[c_nr,b_nr] = np.nanmean(data_var[include_ix])
@@ -112,16 +140,50 @@ def value_per_shell(X, Y, data_var, clusters, bin_size=50, start=0, end=500):
     # return
     return bin_values, xvalues
 
+
+
 def distance_matrix(X, quiet=False):
-    """ calculates distance between all entries in data matrix X (samples X features)"""
+    """
+    Computes the distance matrix for the given data.
+
+    Parameters
+    ----------
+    X : ndarray
+        Data matrix X (samples x features)
+    quiet : bool, optional
+        Suppress print statements, by default False
+
+    Returns
+    -------
+    ndarray
+        Distance matrix (samples x samples)
+    """
+
     if not quiet:
         print("Calculating pairwise distance matrix for {} samples".format(X.shape[0]))
     D = sklearn.metrics.pairwise_distances(X, metric="euclidean")
     np.fill_diagonal(D, np.NaN)
     return D
 
+
+
 def estimate_d_c(D, fraction):
-    """ estimates the d_c value, cut-off for distance """
+    """
+    Estimates the cutoff distance d_c.
+
+    Parameters
+    ----------
+    D : ndarray
+        Distance matrix (samples x samples)
+    fraction : float
+        Fraction of data to include for distance calculation
+
+    Returns
+    -------
+    float
+        Cutoff distance d_c
+    """
+
     d_array = []
     for s in range(D.shape[0]):
         d_array.append(D[s,s+1:])
@@ -131,17 +193,64 @@ def estimate_d_c(D, fraction):
     # print("d_c={}".format(d_c))
     return d_c
 
+
+
+def local_density(D, d_c, normalize=False):
+    """
+    Computes 'rho', the local density for each data point.
+
+    Parameters
+    ----------
+    D : ndarray
+        Distance matrix (samples X samples)
+    d_c : float
+        Cutoff distance
+    normalize : bool, optional
+        Normalize the local density, by default False
+
+    Returns
+    -------
+    ndarray
+        Local density (rho) for each data point
+    """
+
+    # Apply cuttoff
+    D_cuttoff = D<d_c
+    # print("D: \n{}".format(D_cuttoff[:3,:3]))
+
+    # Some fancy weighing magic ... (see matlab script by author, they refer to this as a "Gaussian Kernel")
+    rho = np.zeros((D.shape[0],))
+    for s in range(len(rho)):
+        rho[s] = np.sum(np.exp(-(D[s,D_cuttoff[s,:]] / d_c)**2))
+
+    # Normalize
+    if normalize:
+        rho = rho / np.max(rho)
+
+    # Calculate and return the local density vector
+    return rho
+
+
+
 def weighed_local_density(D, d_c, weights, normalize=False):
-    """ Calculates rho, the local density
+    """
+    Computes a weighed version of'rho', the weighted local density for each data point.
 
-        Inputs
-        - D: pairwise distance matrix D (samples X samples)
-        - d_c: cut-off value
-        - weights: value to scale the density contribution of each datapoint, e.g. ocular dominance index
-        - normalize: whether or not to normalize to max rho=1
+    Parameters
+    ----------
+    D : ndarray
+        Distance matrix (samples X samples)
+    d_c : float
+        Cutoff distance
+    weights : ndarray
+        Weights for each data point
+    normalize : bool, optional
+        Normalize the local density, by default False
 
-        Output
-        - rho: list of local density (rho) per data point
+    Returns
+    -------
+    ndarray
+        Weighted local density (rho) for each data point
     """
 
     # Apply cuttoff
@@ -174,46 +283,29 @@ def weighed_local_density(D, d_c, weights, normalize=False):
     return rho
 
 
-def local_density(D, d_c, normalize=False):
-    """ Calculates rho, the local density
-
-        Inputs
-        - D: pairwise distance matrix D (samples X samples)
-        - d_c: cut-off value
-        - normalize: whether or not to normalize to max rho=1
-
-        Output
-        - rho: list of local density (rho) per data point
-    """
-
-    # Apply cuttoff
-    D_cuttoff = D<d_c
-    # print("D: \n{}".format(D_cuttoff[:3,:3]))
-
-    # Some fancy weighing magic ... (see matlab script by author, they refer to this as a "Gaussian Kernel")
-    rho = np.zeros((D.shape[0],))
-    for s in range(len(rho)):
-        rho[s] = np.sum(np.exp(-(D[s,D_cuttoff[s,:]] / d_c)**2))
-
-    # Normalize
-    if normalize:
-        rho = rho / np.max(rho)
-
-    # Calculate and return the local density vector
-    return rho
-
 
 def distance_to_larger_density(D, rho, normalize=False):
-    """ Calculates delta, the distance to the closest point with a higher local density
-
-        Inputs
-        - D: pairwise distance matrix D (samples X samples)
-        - rho: local density per data point
-        - normalize: whether or not to normalize to max delta=1
-
-        Output
-        - delta: list of distance to point with higher local density
     """
+    Computes 'delta', the minimum distance to a point with higher density for each data point.
+
+    Parameters
+    ----------
+    D : ndarray
+        Distance matrix (samples X samples)
+    rho : ndarray
+        Local density for each data point
+    normalize : bool, optional
+        Normalize the distances, by default False
+
+    Returns
+    -------
+    tuple
+        delta : ndarray
+            Minimum distance to a point with higher density for each data point
+        nearest : ndarray
+            Index of the nearest point with higher density
+    """
+
     # Output vector
     delta = np.zeros_like(rho)
     nearest = np.zeros_like(rho, dtype=np.int64)
@@ -242,8 +334,31 @@ def distance_to_larger_density(D, rho, normalize=False):
 
     return delta, nearest
 
+
+
 def cluster_centers(rho, delta, rho_min=0.2, delta_min=0.2, rho_x_delta_min=None):
-    """ returns the indices of the cluster centers """
+    """
+    Returns the indices of the cluster centers.
+
+    Parameters
+    ----------
+    rho : ndarray
+        Local density for each data point
+    delta : ndarray
+        Minimum distance to a point with higher density for each data point
+    rho_min : float, optional
+        Minimum rho for cluster to be included, by default 0.2
+    delta_min : float, optional
+        Minimum delta for cluster to be included, by default 0.2
+    rho_x_delta_min : float, optional
+        Minimum product of rho and delta to be included as cluster, supersedes rho_min and delta_min, by default None
+
+    Returns
+    -------
+    ndarray
+        Indices indicating which data points are the cluster centers
+    """
+
     if rho_x_delta_min is None:
         centers = np.argwhere( np.logical_and( rho>rho_min, delta>delta_min ) ).ravel()
     else:
@@ -253,8 +368,27 @@ def cluster_centers(rho, delta, rho_min=0.2, delta_min=0.2, rho_x_delta_min=None
     center_rho_sort_ix = np.argsort(rho[centers])
     return centers[center_rho_sort_ix[::-1]]
 
+
+
 def assign_cluster_id(rho, nearest, centers):
-    """ assigns cluster ID's to each point """
+    """
+    Assigns cluster IDs to each point.
+
+    Parameters
+    ----------
+    rho : ndarray
+        Local density for each data point
+    nearest : ndarray
+        Index of the nearest point with higher density
+    centers : ndarray
+        Indices of the cluster centers
+
+    Returns
+    -------
+    ndarray
+        Cluster IDs for each data point
+    """
+
     order = np.argsort(rho)[::-1]
     ids = np.zeros_like(rho, dtype=np.int64)
     for s in range(len(centers)):
@@ -264,8 +398,29 @@ def assign_cluster_id(rho, nearest, centers):
             ids[order[s]] = ids[nearest[order[s]]]
     return ids
 
-def core(D, d_c, rho, ids):
-    """ returns a list with all samples are part of the cluster core """
+
+
+def cluster_cores(D, d_c, rho, ids):
+    """
+    Returns a list of samples that are part of the cluster cores.
+
+    Parameters
+    ----------
+    D : ndarray
+        Distance matrix (samples X samples)
+    d_c : float
+        Cutoff distance
+    rho : ndarray
+        Local density for each data point
+    ids : ndarray
+        Cluster IDs for each data point
+
+    Returns
+    -------
+    ndarray
+        Boolean array indicating core samples
+    """
+
     avg_border_rho = np.zeros( (len(np.unique(ids)),) )
     core = np.zeros_like(rho, dtype=bool)
 
