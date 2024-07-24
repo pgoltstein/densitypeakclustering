@@ -29,9 +29,16 @@ The demo folder holds the following files:
 
 ## Installation
 
-To use this project, clone the repository and install the required dependencies:
+To use this project, directly install from PyPi:
+
+```bash
+pip install densitypeakclustering
+```
+
+Or, clone the repository and install manually:
 
 ```bash
 git clone https://github.com/pgoltstein/densitypeakclustering.git
 cd densitypeakclustering
 pip install .
+```
